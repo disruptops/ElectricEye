@@ -99,13 +99,7 @@ def sns_topic_encryption_check(
             finding = {
                 "SchemaVersion": "2018-10-08",
                 "Id": topicarn + "/sns-topic-encryption-check",
-                "ProductArn": "arn:aws:securityhub:"
-                + awsRegion
-                + ":"
-                + awsAccountId
-                + ":product/"
-                + awsAccountId
-                + "/default",
+                "ProductArn": f"arn:{awsPartition}:securityhub:{awsRegion}:{awsAccountId}:product/{awsAccountId}/default",
                 "GeneratorId": topicarn,
                 "AwsAccountId": awsAccountId,
                 "Types": [

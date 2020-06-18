@@ -82,17 +82,28 @@ def test_sns_topic_no_encryption(sns_stubber):
     for result in results:
         assert result["RecordState"] == "ACTIVE"
         assert result["Title"] == "[SNS.1] SNS topics should be encrypted"
+        assert (
+            result["ProductArn"]
+            == "arn:aws:securityhub:us-east-1:012345678901:product/012345678901/default"
+        )
 
 
-def test_sns_topic_encryption(sns_stubber):
+def test_sns_topic_encryption_gov(sns_stubber):
     sns_stubber.add_response("list_topics", list_topics_response)
     sns_stubber.add_response("get_topic_attributes", get_topic_attributes_kms_response)
     results = sns_topic_encryption_check(
-        cache={}, awsAccountId="012345678901", awsRegion="us-east-1", awsPartition="aws"
+        cache={},
+        awsAccountId="012345678901",
+        awsRegion="us-gov-east-1",
+        awsPartition="aws-us-gov",
     )
     for result in results:
         assert result["RecordState"] == "ARCHIVED"
         assert result["Title"] == "[SNS.1] SNS topics should be encrypted"
+        assert (
+            result["ProductArn"]
+            == "arn:aws-us-gov:securityhub:us-gov-east-1:012345678901:product/012345678901/default"
+        )
 
 
 def test_id_arn_is_principal(sns_stubber):
