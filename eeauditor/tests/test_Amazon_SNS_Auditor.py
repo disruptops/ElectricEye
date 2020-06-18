@@ -23,7 +23,12 @@ get_topic_attributes_no_AWS = {
         "Policy": '{"Version": "2008-10-17","Id": "__default_policy_ID","Statement": [{"Sid": "__default_statement_ID","Effect": "Allow","Principal": {"AWS": "*"},"Action": ["SNS:GetTopicAttributes","SNS:SetTopicAttributes","SNS:AddPermission","SNS:RemovePermission","SNS:DeleteTopic","SNS:Subscribe","SNS:ListSubscriptionsByTopic","SNS:Publish","SNS:Receive"],"Resource": "arn:aws:sns:us-east-1:012345678901:cloudtrail-sns","Condition": {"StringEquals": {"AWS:SourceOwner": "012345678901"}}},{"Sid": "AWSCloudTrailSNSPolicy20150319","Effect": "Allow","Principal": {"Service": "cloudtrail.amazonaws.com"},"Action": "SNS:Publish","Resource": "arn:aws:sns:us-east-1:012345678901:cloudtrail-sns"}]}'
     }
 }
-
+get_topic_attributes_kms_response = {
+    "Attributes": {
+        "Policy": '{"Statement":[{"Principal":{"AWS":"arn:aws:iam::012345678901:root"},"Condition":{"StringEquals":{"AWS:SourceOwner":"012345678901"}}}]}',
+        "KmsMasterKeyId": "abc123",
+    }
+}
 get_topic_attributes_arn_response = {
     "Attributes": {
         "Policy": '{"Statement":[{"Principal":{"AWS":"arn:aws:iam::012345678901:root"},"Condition":{"StringEquals":{"AWS:SourceOwner":"012345678901"}}}]}',
@@ -66,6 +71,28 @@ def sns_stubber():
     sns_stubber.activate()
     yield sns_stubber
     sns_stubber.deactivate()
+
+
+def test_sns_topic_no_encryption(sns_stubber):
+    sns_stubber.add_response("list_topics", list_topics_response)
+    sns_stubber.add_response("get_topic_attributes", get_topic_attributes_arn_response)
+    results = sns_topic_encryption_check(
+        cache={}, awsAccountId="012345678901", awsRegion="us-east-1", awsPartition="aws"
+    )
+    for result in results:
+        assert result["RecordState"] == "ACTIVE"
+        assert result["Title"] == "[SNS.1] SNS topics should be encrypted"
+
+
+def test_sns_topic_encryption(sns_stubber):
+    sns_stubber.add_response("list_topics", list_topics_response)
+    sns_stubber.add_response("get_topic_attributes", get_topic_attributes_kms_response)
+    results = sns_topic_encryption_check(
+        cache={}, awsAccountId="012345678901", awsRegion="us-east-1", awsPartition="aws"
+    )
+    for result in results:
+        assert result["RecordState"] == "ARCHIVED"
+        assert result["Title"] == "[SNS.1] SNS topics should be encrypted"
 
 
 def test_id_arn_is_principal(sns_stubber):

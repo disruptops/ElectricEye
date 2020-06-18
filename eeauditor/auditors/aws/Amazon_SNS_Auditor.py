@@ -33,14 +33,16 @@ def list_topics(cache):
 
 
 @registry.register_check("sns")
-def sns_topic_encryption_check(cache: dict, awsAccountId: str, awsRegion: str) -> dict:
+def sns_topic_encryption_check(
+    cache: dict, awsAccountId: str, awsRegion: str, awsPartition: str
+) -> dict:
     # loop through SNS topics
     response = list_topics(cache)
     mySnsTopics = response["Topics"]
     iso8601Time = datetime.datetime.now(datetime.timezone.utc).isoformat()
     for topic in mySnsTopics:
         topicarn = str(topic["TopicArn"])
-        topicName = topicarn.replace("arn:aws:sns:" + awsRegion + ":" + awsAccountId + ":", "")
+        topicName = topicarn.replace(f"arn:{awsPartition}:sns:{awsRegion}:{awsAccountId}:", "")
         response = sns.get_topic_attributes(TopicArn=topicarn)
         try:
             # this is a passing check
@@ -48,13 +50,7 @@ def sns_topic_encryption_check(cache: dict, awsAccountId: str, awsRegion: str) -
             finding = {
                 "SchemaVersion": "2018-10-08",
                 "Id": topicarn + "/sns-topic-encryption-check",
-                "ProductArn": "arn:aws:securityhub:"
-                + awsRegion
-                + ":"
-                + awsAccountId
-                + ":product/"
-                + awsAccountId
-                + "/default",
+                "ProductArn": f"arn:{awsPartition}:securityhub:{awsRegion}:{awsAccountId}:product/{awsAccountId}/default",
                 "GeneratorId": topicarn,
                 "AwsAccountId": awsAccountId,
                 "Types": [
